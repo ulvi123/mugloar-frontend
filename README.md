@@ -1,70 +1,41 @@
-# Getting Started with Create React App
+Dragons of Mugloar — Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+React frontend for the Dragons of Mugloar fullstack challenge. It lets a user start a game, see the current ads, pick which ones to solve, buy items from the shop, and watch score/gold/lives update live — plus an auto-play button that hands the whole game over to the backend's strategy engine.
 
-## Available Scripts
+This talks to the mugloar-backend API — it never calls the real Dragons of Mugloar API directly.
 
-In the project directory, you can run:
+How it's structured
 
-### `npm start`
+State lives in one place: a useReducer inside GameContext, exposed to every component through a useGame() hook. I went with Context + reducer instead of Redux — the state shape here is small (one game's score, gold, lives, ads, shop) and doesn't need middleware, time-travel debugging, or cross-slice coordination, so pulling in Redux would have been extra hustle for no real benefit.(please correct me if I am wrong)
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Every network call goes through api.js — no fetch() calls anywhere else in the codebase. That was mainly my decision for testability: api.js can be mocked completely in tests without touching components, and if the backend's URL scheme ever changes, there's exactly one file to update.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+Why a proxy, not absolute URLs
 
-### `npm test`
+package.json has "proxy": "http://localhost:8080". All requests in api.js use relative paths like /api/game/start. In development, Create React App's dev server forwards anything it doesn't recognize as a static asset like straight to the backend on port 8080. This sidesteps CORS entirely in dev environment, as the browser only ever talks to localhost:3000 — the proxy hop happens server-side. If I ever decide to go with real deployment this would need to become an actual reverse proxy config or absolute backend URL, but for local dev and this challenge it's the standard CRA approach.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Features
 
-### `npm run build`
+Start a game, see live score/gold/lives/turn in the dashboard
+Ads are sorted best-probability-first, color-coded (green/amber/red) by how good the odds are
+Manually solve individual ads
+Open the shop, see items and cost, buy what's affordable(if you are poor,have no gold or a peasant in the 3rd century Scandinavia, you can't buy anything)
+One-click auto-play that runs the backend's strategy loop and reports the final result
+Error banner surfaces any backend/API failure without crashing the app
+Responsive layout — dashboard and controls reflow on narrow screens
+Running it
+Requirements: Node 18+, and the backend running first (mugloar-backend on port 8080).
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+npm install
+npm start
+Opens on http://localhost:3000. Please ensure the backend is already running and there are no zombie processes on http://localhost:8080 before starting this, or every request will fail.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Running the tests
+npm test -- --watchAll=false
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+api.js, the reducer, and AdList's sorting/click behavior are covered with mocked fetch calls — no test depends on the backend actually running.
 
-### `npm run eject`
+Known limitations
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+No persistence(it was pout of scope of the task but I would love to add persistence layer to that,nice game to develop anyway in Unity) — refreshing the page loses the current game (the backend itself doesn't expose a "resume game" endpoint, so this would need backend support first).
+The shop UI only supports buying one item at a time via a button per row; there's no cart/multi-buy flow, since the task was not referrign to this.
