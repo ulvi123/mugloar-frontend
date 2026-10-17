@@ -10,7 +10,7 @@ export function GameProvider({ children }) {
   const startNewGame = useCallback(async () => {
     dispatch({ type: 'LOADING', payload: true });
     try {
-      const data = await api.startGame();
+      const data = await api.startGame(getServerSession(req, res));
       dispatch({ type: 'GAME_STARTED', payload: data });
       const ads = await api.fetchAds(data.gameId);
       dispatch({ type: 'ADS_LOADED', payload: ads });
